@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+
+  buyers Buyer[]
+  sales  Sale[]
+}
+
+model Buyer {
+  id      String  @id @default(uuid())
+  name    String
+  phone   String?
+  address String?
+  notes   String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  sales Sale[]
+}
+
+model Sale {
+  id   String   @id @default(uuid())
+  date DateTime @default(now())
+
+  Extra Int
+  N1    Int
+  N2    Int
+  N3    Int
+  N4    Int
+
+  ExtraPrice Float
+  N1Price    Float
+  N2Price    Float
+  N3Price    Float
+  N4Price    Float
+
+  totalAmount Float
+  amountPaid  Float @default(0)
+
+  status SaleStatus @default(UNPAID)
+
+  buyerId String
+  buyer   Buyer  @relation(fields: [buyerId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+enum SaleStatus {
+  PAID
+  PARTIAL
+  UNPAID
+}
