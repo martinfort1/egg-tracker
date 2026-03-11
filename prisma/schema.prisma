@@ -54,6 +54,7 @@ model Sale {
 
   totalAmount Float
   amountPaid  Float @default(0)
+  remainingAmount Float
 
   status SaleStatus @default(UNPAID)
 
