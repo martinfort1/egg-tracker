@@ -13,7 +13,7 @@ export class BuyersController {
     @UseGuards(JwtGuard)
     @Post()
     createBuyer(
-        @GetUser('sub') userId: string,
+        @GetUser('id') userId: string,
         @Body() dto: CreateBuyerDto
     ) {
         return this.buyersService.create(userId, dto);

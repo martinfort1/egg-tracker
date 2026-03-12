@@ -12,11 +12,11 @@ export class BuyersService {
     constructor(private prisma: PrismaService) {}
 
     create(userId: string, dto: CreateBuyerDto) {
-        
+        console.log(userId, dto);
         return this.prisma.buyer.create({
             data: {
                 ...dto,
-                userId
+                user: { connect: { id: userId } }
             }
         });
     }
