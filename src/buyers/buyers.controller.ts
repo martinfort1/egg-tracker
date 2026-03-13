@@ -25,6 +25,14 @@ export class BuyersController {
         return this.buyersService.findAll(user);
     }
 
+    @Get('/debts')
+    @UseGuards(JwtGuard)
+    findDebtors(
+        @GetUser('id') userId: string
+    ){
+        return this.buyersService.findDebtors(userId);
+    }
+
     @Get(':id')
     @UseGuards(JwtGuard)
     findOne(
@@ -32,6 +40,15 @@ export class BuyersController {
         @GetUser() user: { id: string }
     ) {
         return this.buyersService.findOne(id, user.id)
+    }
+
+    @Get(':id/history')
+    @UseGuards(JwtGuard)
+    getBuyerHistory(
+        @Param('id') id: string,
+        @GetUser('id') userId: string
+    ) {
+        return this.buyersService.getBuyerHistory(id, userId);
     }
 
     @Put(':id')

@@ -80,4 +80,95 @@ export class BuyersService {
             }
         })
     }
+
+    async findDebtors(userId: string) {
+        const sales = await this.prisma.sale.groupBy({
+            by: ['buyerId'],
+            where: {
+                userId,
+                status: {
+                    in: [ 'PARTIAL', 'UNPAID']
+                }
+            },
+            _sum: {
+                remainingAmount: true,
+            },
+            _count: {
+                id: true
+            },
+            orderBy: {
+                _sum: {
+                    remainingAmount: 'desc'
+                }
+            }
+        });
+
+        const buyerIds = sales.map( sale => sale.buyerId);
+
+        const buyers = await this.prisma.buyer.findMany({
+            where: {
+                id: { in: buyerIds }
+            }
+        })
+        return sales.map( sale => {
+            const buyer = buyers.find( b => b.id === sale.buyerId);
+
+            return {
+                buyerId: sale.buyerId,
+                name:buyer?.name,
+                totalDebt: sale._sum.remainingAmount?? 0,
+                pendingSales: sale._count.id
+            }
+        })
+    }
+
+    async getBuyerHistory(buyerId: string, userId: string) {
+        const buyer = await this.prisma.buyer.findFirst({
+            where: {
+                id: buyerId,
+                userId
+            }
+        });
+
+        if(!buyer) {
+            throw new Error('Buyer not found');
+        }
+
+        const sales = await this.prisma.sale.findMany({
+            where: {
+                buyerId,
+                userId
+            },
+            orderBy: {
+                date: 'desc'
+            }
+        });
+
+        const totals = await this.prisma.sale.aggregate({
+            where: {
+                buyerId,
+                userId
+            },
+            _sum: {
+                totalAmount: true,
+                amountPaid: true,
+                remainingAmount: true,
+            }, 
+            _count: {
+                id: true
+            }
+        });
+
+        return {
+            buyer, 
+            stats: {
+                totalSales: totals._count.id,
+                totalSpent: totals._sum.totalAmount ?? 0,
+                totalPaid: totals._sum.amountPaid ?? 0,
+                totalDebt: totals._sum.remainingAmount ?? 0,
+            },
+            sales
+        }; 
+    }
+    
 }
