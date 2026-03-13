@@ -1,21 +1,19 @@
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
-
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateBuyerDto {
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
 
-    @IsString()
-    @IsNotEmpty()
-    name!: string;
+  @IsString()
+  @IsOptional()
+  phone?: string;
 
-    @IsString()
-    @IsOptional()
-    phone?: string;
+  @IsString()
+  @IsOptional()
+  address?: string;
 
-    @IsString()
-    @IsOptional()
-    address?: string;
-
-    @IsString()
-    @IsOptional()
-    notes?: string;
+  @IsString()
+  @IsOptional()
+  notes?: string;
 }

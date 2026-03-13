@@ -1,7 +1,6 @@
-import { IsInt, IsNumber, IsOptional, IsString, Min } from "class-validator";
+import { IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateSaleDto {
-
   @IsInt()
   @Min(0)
   Extra!: number;

@@ -1,6 +1,6 @@
-import { IsNumber } from "class-validator";
+import { IsNumber } from 'class-validator';
 
 export class UpdatePaymentDto {
-    @IsNumber()
-    amount!: number;
+  @IsNumber()
+  amount!: number;
 }
