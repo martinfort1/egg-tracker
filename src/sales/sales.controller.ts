@@ -56,6 +56,15 @@ export class SalesController {
   ) {
     return this.salesService.getDashboardData(userId, period);
   }
+  
+  @Get('/analytics')
+  @UseGuards(JwtGuard)
+  getAnalytics(
+    @GetUser('id') userId: string,
+    @Query('period') period?: string,
+  ) {
+    return this.salesService.getAnalytics(userId, period);
+  }
 
   @Get(':id')
   @UseGuards(JwtGuard)

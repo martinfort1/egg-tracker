@@ -319,4 +319,82 @@ export class SalesService {
       topBuyers,
     };
   }
+
+  async getAnalytics(userId: string, period?: string) {
+    const startDate = this.getStartDate(period);
+
+    const sales = await this.prisma.sale.findMany({
+      where:{
+        userId,
+        ...(startDate && {
+          date: { gte:  startDate }
+        })
+      },
+      select: {
+        date: true,
+        totalAmount: true
+      }
+    });
+    
+    //Agrupación
+    const grouped: Record<string, number> = {}
+
+    function getWeekNumber(date: Date) {
+      const firstDay = new Date(date.getFullYear(), 0, 1);
+      const pastDays = (date.getTime() - firstDay.getTime()) / 86400000;
+      return Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
+    }
+
+    for( const sale of sales){
+      const date = new Date(sale.date);
+      let key: string;
+
+      if(period === '90d' || period === '1y'){
+        //agrupa por mes
+        key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+      } else{
+        //agrupar por semana
+        const week = getWeekNumber(date);
+        key = `${date.getFullYear()}-W${week}`
+      }
+
+      grouped[key] = (grouped[key] || 0 ) + sale.totalAmount;
+
+    }
+
+    return Object.entries(grouped)
+      .map(([key, total]) => {
+
+        let sortDate: Date;
+        let label: string;
+
+        if (key.includes("W")) {
+          const [year, week] = key.split("-W");
+
+          // fecha aproximada de esa semana
+          sortDate = new Date(Number(year), 0, Number(week) * 7);
+
+          label = `Week ${week}`;
+        } else {
+          const [year, month] = key.split("-");
+
+          const date = new Date(Number(year), Number(month) - 1);
+
+          sortDate = date;
+
+          label = date.toLocaleString("en-US", {
+            month: "numeric",
+            year: "2-digit"
+          }); 
+        }
+
+        return {
+          label,
+          total,
+          sortDate
+        };
+      })
+      .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
+      .map(({ label, total }) => ({ label, total }));
+  }
 }
