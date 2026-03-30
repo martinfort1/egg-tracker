@@ -3,6 +3,7 @@ import { CreateSaleDto } from './dto/create-sale.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { SaleStatus } from '@prisma/client';
 import { UpdatePaymentDto } from './dto/UpdatePaymentDto.dto';
+import { UpdateSaleDto } from './dto/update-sale.dto';
 @Injectable()
 export class SalesService {
   constructor(private prisma: PrismaService) {}
@@ -396,5 +397,75 @@ export class SalesService {
       })
       .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
       .map(({ label, total }) => ({ label, total }));
+  }
+
+  async update(id: string, userId: string, dto: UpdateSaleDto) {
+    // 1. Verificar que la venta existe y pertenece al usuario
+    const existingSale = await this.prisma.sale.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (!existingSale) {
+      throw new Error('Sale not found');
+    }
+
+    // 2. Merge de datos (usar valores existentes si no vienen en dto)
+    const sale = {
+      ...existingSale,
+      ...dto,
+    };
+
+    // 3. Recalcular total
+    const totalAmount =
+      sale.Extra * sale.ExtraPrice +
+      sale.N1 * sale.N1Price +
+      sale.N2 * sale.N2Price +
+      sale.N3 * sale.N3Price +
+      sale.N4 * sale.N4Price;
+
+    const amountPaid = sale.amountPaid ?? 0;
+
+    if (amountPaid > totalAmount) {
+      throw new Error('Amount paid cannot be greater than total');
+    }
+
+    const remainingAmount = totalAmount - amountPaid;
+
+    // 4. Status correcto
+    let status;
+
+    if (amountPaid === totalAmount) {
+      status = 'PAID';
+    } else if (amountPaid === 0) {
+      status = 'UNPAID';
+    } else {
+      status = 'PARTIAL';
+    }
+
+    // 5. Update en DB
+    return this.prisma.sale.update({
+      where: { id },
+      data: {
+        Extra: sale.Extra,
+        N1: sale.N1,
+        N2: sale.N2,
+        N3: sale.N3,
+        N4: sale.N4,
+
+        ExtraPrice: sale.ExtraPrice,
+        N1Price: sale.N1Price,
+        N2Price: sale.N2Price,
+        N3Price: sale.N3Price,
+        N4Price: sale.N4Price,
+
+        totalAmount,
+        amountPaid,
+        remainingAmount,
+        status,
+      },
+    });
   }
 }

@@ -14,6 +14,7 @@ import { JwtGuard } from '../auth/guards/jwt.guard';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UpdatePaymentDto } from './dto/UpdatePaymentDto.dto';
+import { UpdateSaleDto } from './dto/update-sale.dto';
 
 @Controller('sales')
 export class SalesController {
@@ -89,6 +90,15 @@ export class SalesController {
     @GetUser('id') userId: string,
   ) {
     return this.salesService.addPayment(id, userId, dto);
+  }
+  @Patch(':id')
+  @UseGuards(JwtGuard)
+  updateSale(
+    @Param('id') id: string,
+    @Body() dto: UpdateSaleDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.salesService.update(id, userId, dto);
   }
   @Delete(':id')
   @UseGuards(JwtGuard)
