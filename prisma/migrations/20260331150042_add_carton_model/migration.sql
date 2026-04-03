@@ -1,0 +1,19 @@
+-- CreateTable
+CREATE TABLE "Carton" (
+    "id" TEXT NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "quantity" INTEGER NOT NULL,
+    "price" DOUBLE PRECISION NOT NULL,
+    "totalAmount" DOUBLE PRECISION NOT NULL,
+    "amountPaid" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "remainingAmount" DOUBLE PRECISION NOT NULL,
+    "status" "SaleStatus" NOT NULL DEFAULT 'UNPAID',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "Carton_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "Carton" ADD CONSTRAINT "Carton_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

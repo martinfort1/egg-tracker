@@ -19,8 +19,11 @@ model User {
   name      String?
   createdAt DateTime @default(now())
 
-  buyers Buyer[]
-  sales  Sale[]
+  buyers    Buyer[]
+  sales     Sale[]
+  employees Employee[]
+  feedBags  FeedBag[]
+  cartons   Carton[]
 }
 
 model Buyer {
@@ -60,6 +63,53 @@ model Sale {
 
   buyerId String
   buyer   Buyer  @relation(fields: [buyerId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model Employee {
+  id            String   @id @default(uuid())
+  name          String
+  phone         String
+  salary        Float
+  paidThisMonth Boolean  @default(false)
+  amountOwed    Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model FeedBag {
+  id             String     @id @default(uuid())
+  date           DateTime   @default(now())
+  amount         Float      // Amount in kg or bags
+  price          Float      // Price per unit
+  totalAmount    Float
+  amountPaid     Float      @default(0)
+  remainingAmount Float
+  phase          Int        // 1 or 2 (feed phase)
+  status         SaleStatus @default(UNPAID)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model Carton {
+  id             String     @id @default(uuid())
+  date           DateTime   @default(now())
+  quantity       Int        // Number of cartons
+  price          Float      // Price per carton
+  totalAmount    Float
+  amountPaid     Float      @default(0)
+  remainingAmount Float
+  status         SaleStatus @default(UNPAID)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
