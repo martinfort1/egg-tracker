@@ -8,9 +8,10 @@ import { SalesModule } from './sales/sales.module';
 import { EmployeesModule } from './employees/employees.module';
 import { FeedBagsModule } from './feed-bags/feed-bags.module';
 import { CartonsModule } from './cartons/cartons.module';
+import { VaccinesModule } from './vaccines/vaccines.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, BuyersModule, SalesModule, EmployeesModule, FeedBagsModule, CartonsModule],
+  imports: [PrismaModule, AuthModule, BuyersModule, SalesModule, EmployeesModule, FeedBagsModule, CartonsModule, VaccinesModule],
   controllers: [AppController],
   providers: [AppService],
 })

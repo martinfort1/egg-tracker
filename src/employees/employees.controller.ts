@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   UseGuards,
@@ -13,6 +14,7 @@ import { JwtGuard } from '../auth/guards/jwt.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { AddEmployeePaymentDto } from './dto/add-employee-payment.dto';
 import type { User } from '@prisma/client';
 
 @Controller('employees')
@@ -46,6 +48,16 @@ export class EmployeesController {
     @Body() dto: UpdateEmployeeDto,
   ) {
     return this.employeesService.update(id, user.id, dto);
+  }
+
+  @Patch(':id/payment')
+  @UseGuards(JwtGuard)
+  addPayment(
+    @Param('id') id: string,
+    @GetUser() user: { id: string },
+    @Body() dto: AddEmployeePaymentDto,
+  ) {
+    return this.employeesService.addPayment(id, user.id, dto);
   }
 
   @Delete(':id')

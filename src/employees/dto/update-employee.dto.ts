@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsBoolean, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class UpdateEmployeeDto {
   @IsString()
@@ -12,10 +12,6 @@ export class UpdateEmployeeDto {
   @IsNumber()
   @IsOptional()
   salary?: number;
-
-  @IsBoolean()
-  @IsOptional()
-  paidThisMonth?: boolean;
 
   @IsNumber()
   @IsOptional()

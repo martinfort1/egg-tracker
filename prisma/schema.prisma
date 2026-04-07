@@ -19,11 +19,14 @@ model User {
   name      String?
   createdAt DateTime @default(now())
 
-  buyers    Buyer[]
-  sales     Sale[]
-  employees Employee[]
-  feedBags  FeedBag[]
-  cartons   Carton[]
+  buyers           Buyer[]
+  sales            Sale[]
+  employees        Employee[]
+  employeePayments EmployeePayment[]
+  feedBags         FeedBag[]
+  cartons          Carton[]
+  vaccines         Vaccine[]
+  vaccineApplications VaccineApplication[]
 }
 
 model Buyer {
@@ -72,14 +75,17 @@ model Employee {
   id            String   @id @default(uuid())
   name          String
   phone         String
-  salary        Float
-  paidThisMonth Boolean  @default(false)
-  amountOwed    Float    @default(0)
+  salary        Int
+
+  lastPaidDate  DateTime? 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
+
+  payments EmployeePayment[]
+  salaryPeriods SalaryPeriod[]
 }
 
 model FeedBag {
@@ -110,6 +116,69 @@ model Carton {
   status         SaleStatus @default(UNPAID)
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model EmployeePayment {
+  id              String   @id @default(uuid())
+  amount          Float
+  date            DateTime @default(now())
+  description     String   @default("Salary") // Salary or Advance
+  createdAt       DateTime @default(now())
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  salaryPeriodId String?
+  salaryPeriod   SalaryPeriod? @relation(fields: [salaryPeriodId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model SalaryPeriod {
+  id         String   @id @default(uuid())
+  month      Int
+  year       Int
+  salary     Int
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  EmployeePayment EmployeePayment[]
+
+  createdAt  DateTime @default(now())
+
+  @@unique([employeeId, month, year]) 
+}
+
+model Vaccine {
+  id                    String   @id @default(uuid())
+  name                  String
+  durationDays          Int      @default(30) // Days between applications
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  applications VaccineApplication[]
+}
+
+model VaccineApplication {
+  id                    String   @id @default(uuid())
+  dateApplied           DateTime
+  vaccineCost           Float   // Cost of vaccine for this application
+  labourCost            Float   // Labour cost for this application
+  totalCost             Float   // vaccineCost + labourCost
+  notes                 String?
+  createdAt             DateTime @default(now())
+
+  vaccineId String
+  vaccine   Vaccine @relation(fields: [vaccineId], references: [id], onDelete: Cascade)
 
   userId String
   user   User   @relation(fields: [userId], references: [id])

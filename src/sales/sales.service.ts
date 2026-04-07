@@ -314,10 +314,46 @@ export class SalesService {
     const monthly = await this.getMonthly(userId, period);
     const topBuyers = await this.getTopBuyers(where);
 
+    // Get expense data
+    const employeePayments = await this.prisma.employeePayment.aggregate({
+      where: {
+        userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    const vaccineApplications = await this.prisma.vaccineApplication.aggregate({
+      where: {
+        userId,
+        ...(startDate && {
+          dateApplied: {
+            gte: startDate,
+          },
+        }),
+      },
+      _sum: {
+        totalCost: true,
+      },
+    });
+
+    const expenses = {
+      employeePayments: employeePayments._sum.amount ?? 0,
+      vaccineCosts: vaccineApplications._sum.totalCost ?? 0,
+      totalExpenses: (employeePayments._sum.amount ?? 0) + (vaccineApplications._sum.totalCost ?? 0),
+    };
+
     return {
       summary,
       monthly,
       topBuyers,
+      expenses,
     };
   }
 
