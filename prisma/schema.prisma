@@ -27,6 +27,9 @@ model User {
   cartons          Carton[]
   vaccines         Vaccine[]
   vaccineApplications VaccineApplication[]
+  expenseCategories ExpenseCategory[]
+  expenses         Expense[]
+  eggLayings       EggLaying[]
 }
 
 model Buyer {
@@ -188,4 +191,49 @@ enum SaleStatus {
   PAID
   PARTIAL
   UNPAID
+}
+
+model ExpenseCategory {
+  id        String   @id @default(uuid())
+  name      String   
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  expenses Expense[]
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  date        DateTime @default(now())
+  name        String  
+  quantity    Float
+  price       Float    
+  totalAmount Float    
+  description String? 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  categoryId String
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model EggLaying {
+  id        String   @id @default(uuid())
+  date      String
+  boxes     Int      
+  cartons   Int     
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@index([userId, date])
 }
