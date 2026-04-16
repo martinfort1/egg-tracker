@@ -10,8 +10,6 @@ export class EggLayingService {
 
     const date = dto.date
 
-    console.log(date)
-
     // Check if entry already exists for this date
     const existingEntry = await this.prisma.eggLaying.findFirst({
       where: {

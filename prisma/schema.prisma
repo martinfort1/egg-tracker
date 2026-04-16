@@ -30,6 +30,8 @@ model User {
   expenseCategories ExpenseCategory[]
   expenses         Expense[]
   eggLayings       EggLaying[]
+  chickens         Chicken[]
+  chickenDeaths    ChickenDeath[]
 }
 
 model Buyer {
@@ -236,4 +238,35 @@ model EggLaying {
 
   @@unique([userId, date])
   @@index([userId, date])
+}
+
+model Chicken {
+  id                String   @id @default(uuid())
+  date              DateTime @default(now())
+  amount            Int      // Number of chickens bought
+  pricePerChicken   Float    // Price per chicken
+  shippingCost      Float    // Shipping cost
+  totalCost         Float    // Total cost
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  deaths ChickenDeath[]
+}
+
+model ChickenDeath {
+  id        String   @id @default(uuid())
+  date      DateTime @default(now())
+  amount    Int      // Number of chickens died
+  notes     String?  // Reason or notes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chickenId String
+  chicken   Chicken @relation(fields: [chickenId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 }
