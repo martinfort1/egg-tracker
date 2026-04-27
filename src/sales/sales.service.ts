@@ -314,7 +314,7 @@ export class SalesService {
     const monthly = await this.getMonthly(userId, period);
     const topBuyers = await this.getTopBuyers(where);
 
-    // Get expense data
+    // Get expense data - all types
     const employeePayments = await this.prisma.employeePayment.aggregate({
       where: {
         userId,
@@ -343,10 +343,77 @@ export class SalesService {
       },
     });
 
+    const feedBags = await this.prisma.feedBag.aggregate({
+      where: {
+        userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
+      },
+      _sum: {
+        totalAmount: true,
+      },
+    });
+
+    const cartons = await this.prisma.carton.aggregate({
+      where: {
+        userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
+      },
+      _sum: {
+        totalAmount: true,
+      },
+    });
+
+    const chickens = await this.prisma.chicken.aggregate({
+      where: {
+        userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
+      },
+      _sum: {
+        totalCost: true,
+      },
+    });
+
+    const otherExpenses = await this.prisma.expense.aggregate({
+      where: {
+        userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
+      },
+      _sum: {
+        totalAmount: true,
+      },
+    });
+
+    const employeePaymentsTotal = employeePayments._sum.amount ?? 0;
+    const vaccineCostsTotal = vaccineApplications._sum.totalCost ?? 0;
+    const feedBagsTotal = feedBags._sum.totalAmount ?? 0;
+    const cartonsTotal = cartons._sum.totalAmount ?? 0;
+    const chickensTotal = chickens._sum.totalCost ?? 0;
+    const otherExpensesTotal = otherExpenses._sum.totalAmount ?? 0;
+
     const expenses = {
-      employeePayments: employeePayments._sum.amount ?? 0,
-      vaccineCosts: vaccineApplications._sum.totalCost ?? 0,
-      totalExpenses: (employeePayments._sum.amount ?? 0) + (vaccineApplications._sum.totalCost ?? 0),
+      employeePayments: employeePaymentsTotal,
+      vaccineCosts: vaccineCostsTotal,
+      feedBags: feedBagsTotal,
+      cartons: cartonsTotal,
+      chickens: chickensTotal,
+      other: otherExpensesTotal,
+      totalExpenses: employeePaymentsTotal + vaccineCostsTotal + feedBagsTotal + cartonsTotal + chickensTotal + otherExpensesTotal,
     };
 
     return {
@@ -372,9 +439,100 @@ export class SalesService {
         totalAmount: true
       }
     });
+
+    const employeePayments = await this.prisma.employeePayment.findMany({
+      where: {
+        userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
+      },
+      select: {
+        date: true,
+        amount: true,
+      },
+    });
+
+    const vaccineApplications = await this.prisma.vaccineApplication.findMany({
+      where: {
+        userId,
+        ...(startDate && {
+          dateApplied: {
+            gte: startDate,
+          },
+        }),
+      },
+      select: {
+        dateApplied: true,
+        totalCost: true,
+      },
+    });
+
+    const feedBags = await this.prisma.feedBag.findMany({
+      where: {
+        userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
+      },
+      select: {
+        date: true,
+        totalAmount: true,
+      },
+    });
+
+    const cartons = await this.prisma.carton.findMany({
+      where: {
+        userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
+      },
+      select: {
+        date: true,
+        totalAmount: true,
+      },
+    });
+
+    const chickens = await this.prisma.chicken.findMany({
+      where: {
+        userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
+      },
+      select: {
+        date: true,
+        totalCost: true,
+      },
+    });
+
+    const otherExpenses = await this.prisma.expense.findMany({
+      where: {
+        userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
+      },
+      select: {
+        date: true,
+        totalAmount: true,
+      },
+    });
     
-    //Agrupación
-    const grouped: Record<string, number> = {}
+    // Grouping logic
+    const groupedRevenue: Record<string, number> = {};
+    const groupedExpenses: Record<string, number> = {};
 
     function getWeekNumber(date: Date) {
       const firstDay = new Date(date.getFullYear(), 0, 1);
@@ -382,43 +540,79 @@ export class SalesService {
       return Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
     }
 
-    for( const sale of sales){
-      const date = new Date(sale.date);
-      let key: string;
-
+    function getKey(date: Date): string {
       if(period === '90d' || period === '1y'){
-        //agrupa por mes
-        key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+        return `${date.getFullYear()}-${date.getMonth() + 1}`;
       } else{
-        //agrupar por semana
         const week = getWeekNumber(date);
-        key = `${date.getFullYear()}-W${week}`
+        return `${date.getFullYear()}-W${week}`;
       }
-
-      grouped[key] = (grouped[key] || 0 ) + sale.totalAmount;
-
     }
 
-    return Object.entries(grouped)
-      .map(([key, total]) => {
+    // Group revenue from sales
+    for( const sale of sales){
+      const date = new Date(sale.date);
+      const key = getKey(date);
+      groupedRevenue[key] = (groupedRevenue[key] || 0) + sale.totalAmount;
+    }
+
+    // Group expenses
+    for (const payment of employeePayments) {
+      const date = new Date(payment.date);
+      const key = getKey(date);
+      groupedExpenses[key] = (groupedExpenses[key] || 0) + payment.amount;
+    }
+
+    for (const vaccine of vaccineApplications) {
+      const date = new Date(vaccine.dateApplied);
+      const key = getKey(date);
+      groupedExpenses[key] = (groupedExpenses[key] || 0) + vaccine.totalCost;
+    }
+
+    for (const feedBag of feedBags) {
+      const date = new Date(feedBag.date);
+      const key = getKey(date);
+      groupedExpenses[key] = (groupedExpenses[key] || 0) + feedBag.totalAmount;
+    }
+
+    for (const carton of cartons) {
+      const date = new Date(carton.date);
+      const key = getKey(date);
+      groupedExpenses[key] = (groupedExpenses[key] || 0) + carton.totalAmount;
+    }
+
+    for (const chicken of chickens) {
+      const date = new Date(chicken.date);
+      const key = getKey(date);
+      groupedExpenses[key] = (groupedExpenses[key] || 0) + chicken.totalCost;
+    }
+
+    for (const expense of otherExpenses) {
+      const date = new Date(expense.date);
+      const key = getKey(date);
+      groupedExpenses[key] = (groupedExpenses[key] || 0) + expense.totalAmount;
+    }
+
+    // Merge all keys (revenue + expenses)
+    const allKeys = new Set([...Object.keys(groupedRevenue), ...Object.keys(groupedExpenses)]);
+
+    return Array.from(allKeys)
+      .map((key) => {
+        const revenue = groupedRevenue[key] || 0;
+        const expenses = groupedExpenses[key] || 0;
+        const profit = revenue - expenses;
 
         let sortDate: Date;
         let label: string;
 
         if (key.includes("W")) {
           const [year, week] = key.split("-W");
-
-          // fecha aproximada de esa semana
           sortDate = new Date(Number(year), 0, Number(week) * 7);
-
           label = `Week ${week}`;
         } else {
           const [year, month] = key.split("-");
-
           const date = new Date(Number(year), Number(month) - 1);
-
           sortDate = date;
-
           label = date.toLocaleString("en-US", {
             month: "numeric",
             year: "2-digit"
@@ -427,12 +621,14 @@ export class SalesService {
 
         return {
           label,
-          total,
+          revenue,
+          expenses,
+          profit,
           sortDate
         };
       })
       .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
-      .map(({ label, total }) => ({ label, total }));
+      .map(({ label, revenue, expenses, profit }) => ({ label, revenue, expenses, profit }));
   }
 
   async update(id: string, userId: string, dto: UpdateSaleDto) {
