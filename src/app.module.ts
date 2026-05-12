@@ -12,9 +12,11 @@ import { VaccinesModule } from './vaccines/vaccines.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { EggLayingModule } from './egg-laying/egg-laying.module';
 import { ChickensModule } from './chickens/chickens.module';
+import { SupportModule } from './support/support.module';
+import { FeatureSuggestionModule } from './feature-suggestion/feature-suggestion.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, BuyersModule, SalesModule, EmployeesModule, FeedBagsModule, CartonsModule, VaccinesModule, ExpensesModule, EggLayingModule, ChickensModule],
+  imports: [PrismaModule, AuthModule, BuyersModule, SalesModule, EmployeesModule, FeedBagsModule, CartonsModule, VaccinesModule, ExpensesModule, EggLayingModule, ChickensModule, SupportModule, FeatureSuggestionModule],
   controllers: [AppController],
   providers: [AppService],
 })
