@@ -13,7 +13,7 @@ async function bootstrap() {
   ));
   
   const origin = process.env.NODE_ENV === "production" 
-    ? process.env.BASE_URL ?? "https://egg-tracker.vercel.app"
+    ? process.env.BASE_URL ?? "https://egg-track.vercel.app"
     : "http://localhost:3000";
   
   app.enableCors({
