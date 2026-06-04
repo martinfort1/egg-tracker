@@ -50,7 +50,7 @@ export class EmployeesService {
     });
 
     if (!employee) {
-      throw new Error('Employee not found');
+      throw new NotFoundException('Employee not found');
     }
     return employee;
   }
@@ -66,12 +66,13 @@ export class EmployeesService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // Update employee fields (including base salary)
       const updated = await tx.employee.update({
         where: { id },
         data: dto,
       });
 
-      // update/create current period
+      // Update/create current period with new salary
       if (dto.salary !== undefined) {
         const now = new Date();
         const month = now.getMonth();
@@ -93,11 +94,21 @@ export class EmployeesService {
             month,
             year,
             salary: dto.salary,
+            balance: 0, // New periods start with no balance
           },
         });
       }
 
-      return updated;
+      // Return employee with updated salary periods to reflect changes
+      return tx.employee.findFirst({
+        where: { id, userId },
+        include: {
+          payments: {
+            orderBy: { date: 'desc' },
+          },
+          salaryPeriods: true,
+        },
+      });
     });
   }
 
@@ -110,7 +121,7 @@ export class EmployeesService {
     });
 
     if (!employee) {
-      throw new Error('Employee not found');
+      throw new NotFoundException('Employee not found');
     }
 
     return this.prisma.employee.delete({
@@ -138,7 +149,23 @@ export class EmployeesService {
     const year = date.getFullYear();
 
     return this.prisma.$transaction(async (tx) => {
-      // find or create salary period
+      // Get balance from previous month
+      const prevMonth = month === 0 ? 11 : month - 1;
+      const prevYear = month === 0 ? year - 1 : year;
+
+      const previousPeriod = await tx.salaryPeriod.findUnique({
+        where: {
+          employeeId_month_year: {
+            employeeId: id,
+            month: prevMonth,
+            year: prevYear,
+          },
+        },
+      });
+
+      const carryoverBalance = previousPeriod?.balance ?? 0;
+
+      // Find or create salary period for this payment
       let period = await tx.salaryPeriod.findUnique({
         where: {
           employeeId_month_year: {
@@ -155,12 +182,13 @@ export class EmployeesService {
             employeeId: id,
             month,
             year,
-            salary: employee.salary, // snapshot
+            salary: employee.salary,
+            balance: carryoverBalance, // Carry over balance from previous month
           },
         });
       }
 
-      // payment linked to period
+      // Create payment
       const payment = await tx.employeePayment.create({
         data: {
           amount: dto.amount,
@@ -172,7 +200,29 @@ export class EmployeesService {
         },
       });
 
-      // update last paid date
+      // Calculate new balance: what carries over to next month
+      // balance = paid - (salary + carryover)
+      // Positive balance = credit/overpaid, Negative = debt/underpaid
+      const paidThisMonth = await tx.employeePayment.aggregate({
+        where: {
+          salaryPeriodId: period.id,
+        },
+        _sum: {
+          amount: true,
+        },
+      });
+
+      const totalPaidThisMonth = paidThisMonth._sum.amount ?? 0;
+      const totalOwedThisMonth = (period.salary - carryoverBalance);
+      const newBalance = totalPaidThisMonth - totalOwedThisMonth;
+
+      // Update period with new balance
+      await tx.salaryPeriod.update({
+        where: { id: period.id },
+        data: { balance: newBalance },
+      });
+
+      // Update last paid date
       await tx.employee.update({
         where: { id },
         data: {

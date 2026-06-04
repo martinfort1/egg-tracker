@@ -148,9 +148,10 @@ model SalaryPeriod {
   month      Int
   year       Int
   salary     Int
+  balance    Float    @default(0) // Carries over balance from previous month (overpayment or underpayment)
 
   employeeId String
-  employee   Employee @relation(fields: [employeeId], references: [id])
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   EmployeePayment EmployeePayment[]
 
