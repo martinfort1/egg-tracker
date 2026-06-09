@@ -69,10 +69,16 @@ export class SalesService {
     });
   }
 
-  async findAll(userId: string) {
+  async findAll(userId: string, period?: string) {
+    const startDate = this.getStartDate(period);
     return this.prisma.sale.findMany({
       where: {
         userId,
+        ...(startDate && {
+          date: {
+            gte: startDate,
+          },
+        }),
       },
       include: {
         buyer: true,
@@ -177,7 +183,7 @@ export class SalesService {
   private getStartDate(period?: string): Date | undefined {
     const now = new Date();
 
-    if (!period) return undefined;
+    if (!period || period === 'all') return undefined;
 
     switch (period) {
       case '7d':

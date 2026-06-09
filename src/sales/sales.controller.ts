@@ -28,8 +28,11 @@ export class SalesController {
 
   @Get()
   @UseGuards(JwtGuard)
-  findAll(@GetUser('id') userId: string) {
-    return this.salesService.findAll(userId);
+  findAll(
+    @GetUser('id') userId: string,
+    @Query('period') period?: string,
+  ) {
+    return this.salesService.findAll(userId, period);
   }
 
   @Get('/debts')
