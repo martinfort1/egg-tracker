@@ -34,6 +34,12 @@ export class FeedBagsController {
     return this.feedBagsService.findAll(user);
   }
 
+  @Get('metrics/summary')
+  @UseGuards(JwtGuard)
+  getMetrics(@GetUser() user: User) {
+    return this.feedBagsService.getMetrics(user);
+  }
+
   @Get(':id')
   @UseGuards(JwtGuard)
   findOne(@Param('id') id: string, @GetUser() user: { id: string }) {
@@ -58,6 +64,15 @@ export class FeedBagsController {
     @Body() dto: UpdatePaymentDto,
   ) {
     return this.feedBagsService.addPayment(id, user.id, dto);
+  }
+
+  @Post('payment/bulk')
+  @UseGuards(JwtGuard)
+  addBulkPayment(
+    @GetUser() user: { id: string },
+    @Body() dto: UpdatePaymentDto,
+  ) {
+    return this.feedBagsService.addBulkPayment(user.id, dto);
   }
 
   @Delete(':id')
