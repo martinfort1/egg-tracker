@@ -151,4 +151,74 @@ export class FeedBagsService {
       },
     });
   }
+
+  async getMetrics(user: User) {
+    const feedBags = await this.prisma.feedBag.findMany({
+      where: {
+        user: { id: user.id },
+      },
+    });
+
+    const totalOwed = feedBags.reduce((sum, bag) => sum + bag.remainingAmount, 0);
+    const unpaidCount = feedBags.filter(bag => bag.status !== 'PAID').length;
+
+    return {
+      totalOwed,
+      unpaidCount,
+    };
+  }
+
+  async addBulkPayment(userId: string, dto: { amount: number; date?: string }) {
+    const feedBags = await this.prisma.feedBag.findMany({
+      where: {
+        userId,
+        status: { not: 'PAID' },
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    if (feedBags.length === 0) {
+      throw new Error('No unpaid feed bags found');
+    }
+
+    let remainingPayment = dto.amount;
+    const updates: any[] = [];
+
+    // Distribute payment across feed bags
+    for (const feedBag of feedBags) {
+      if (remainingPayment <= 0) break;
+
+      const amountToApply = Math.min(remainingPayment, feedBag.remainingAmount);
+      const newAmountPaid = feedBag.amountPaid + amountToApply;
+      const newRemainingAmount = feedBag.totalAmount - newAmountPaid;
+
+      let status: SaleStatus;
+      if (newAmountPaid >= feedBag.totalAmount) status = 'PAID';
+      else if (newAmountPaid === 0) status = 'UNPAID';
+      else status = 'PARTIAL';
+
+      updates.push(
+        this.prisma.feedBag.update({
+          where: { id: feedBag.id },
+          data: {
+            amountPaid: newAmountPaid,
+            remainingAmount: newRemainingAmount,
+            status,
+          },
+        })
+      );
+
+      remainingPayment -= amountToApply;
+    }
+
+    // Execute all updates
+    await this.prisma.$transaction(updates);
+
+    return {
+      amountApplied: dto.amount - remainingPayment,
+      feedBagsUpdated: updates.length,
+    };
+  }
 }

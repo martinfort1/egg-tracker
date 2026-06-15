@@ -42,6 +42,7 @@ export class SalesService {
 
     return this.prisma.sale.create({
       data: {
+        date: dto.date ? new Date(dto.date) : new Date(),
         Extra: dto.Extra,
         N1: dto.N1,
         N2: dto.N2,
@@ -687,6 +688,7 @@ export class SalesService {
     return this.prisma.sale.update({
       where: { id },
       data: {
+        date: sale.date ? new Date(sale.date) : undefined,
         Extra: sale.Extra,
         N1: sale.N1,
         N2: sale.N2,
