@@ -51,11 +51,11 @@ model Sale {
   id   String   @id @default(uuid())
   date DateTime @default(now())
 
-  Extra Int
-  N1    Int
-  N2    Int
-  N3    Int
-  N4    Int
+  Extra Float
+  N1    Float
+  N2    Float
+  N3    Float
+  N4    Float
 
   ExtraPrice Float
   N1Price    Float

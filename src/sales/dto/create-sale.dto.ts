@@ -1,23 +1,25 @@
 import { IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateSaleDto {
-  @IsInt()
+  @IsOptional() date?: Date;
+
+  @IsNumber()
   @Min(0)
   Extra!: number;
 
-  @IsInt()
+  @IsNumber()
   @Min(0)
   N1!: number;
 
-  @IsInt()
+  @IsNumber()
   @Min(0)
   N2!: number;
 
-  @IsInt()
+  @IsNumber()
   @Min(0)
   N3!: number;
 
-  @IsInt()
+  @IsNumber()
   @Min(0)
   N4!: number;
 

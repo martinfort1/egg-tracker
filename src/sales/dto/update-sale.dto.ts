@@ -1,6 +1,7 @@
 import { IsNumber, IsOptional } from "class-validator";
 
 export class UpdateSaleDto {
+  @IsOptional() date?: Date;
   @IsOptional() @IsNumber() Extra?: number;
   @IsOptional() @IsNumber() N1?: number;
   @IsOptional() @IsNumber() N2?: number;
