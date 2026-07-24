@@ -21,6 +21,7 @@ model User {
 
   buyers           Buyer[]
   sales            Sale[]
+  orders           Order[]
   employees        Employee[]
   employeePayments EmployeePayment[]
   feedBags         FeedBag[]
@@ -45,6 +46,7 @@ model Buyer {
   user   User   @relation(fields: [userId], references: [id])
 
   sales Sale[]
+  orders Order[]
 }
 
 model Sale {
@@ -74,6 +76,55 @@ model Sale {
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
+}
+enum OrderStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model Order {
+  id String @id @default(uuid())
+
+  date DateTime
+
+  Extra Float
+  N1 Float
+  N2 Float
+  N3 Float
+  N4 Float
+
+  ExtraPrice Float
+  N1Price Float
+  N2Price Float
+  N3Price Float
+  N4Price Float
+
+  totalAmount Float
+
+  status OrderStatus @default(PENDING)
+
+  buyerId String
+  buyer Buyer @relation(fields: [buyerId], references: [id])
+
+  userId String
+  user User @relation(fields: [userId], references: [id])
+
+  recurring Boolean @default(false)
+
+  recurringDays WeekDay[]
+
+  createdAt DateTime @default(now())
 }
 
 model Employee {
