@@ -2,20 +2,41 @@ import { IsOptional, IsNumber, IsDateString, Min } from 'class-validator';
 
 export class UpdateCartonDto {
   @IsDateString()
-  date!: string;
+  @IsOptional()
+  date?: string;
 
   @IsNumber()
-  @Min(1)
+  @Min(0)
   @IsOptional()
   quantity?: number;
 
   @IsNumber()
-  @Min(0.01)
+  @Min(0)
   @IsOptional()
   price?: number;
 
   @IsNumber()
-  @Min(0.01)
+  @Min(0)
+  @IsOptional()
+  bigCartonsQuantity?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  smallCartonsQuantity?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  bigCartonPrice?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  smallCartonPrice?: number;
+
+  @IsNumber()
+  @Min(0)
   @IsOptional()
   totalAmount?: number;
 

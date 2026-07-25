@@ -9,15 +9,19 @@ export class CartonsService {
   constructor(private prisma: PrismaService) {}
 
   create(userId: string, dto: CreateCartonDto) {
-    
-    const amountPaid = dto.amountPaid ?? 0;
-    const totalAmount = dto.totalAmount;
-    const remainingAmount = dto.remainingAmount;
+    const bigQuantity = Number(dto.bigCartonsQuantity ?? 0);
+    const smallQuantity = Number(dto.smallCartonsQuantity ?? 0);
+    const bigPrice = Number(dto.bigCartonPrice ?? 0);
+    const smallPrice = Number(dto.smallCartonPrice ?? 0);
+    const calculatedTotal = bigQuantity * bigPrice + smallQuantity * smallPrice;
+    const amountPaid = Number(dto.amountPaid ?? 0);
+    const totalAmount = Number(dto.totalAmount ?? calculatedTotal);
+    const remainingAmount = Number(dto.remainingAmount ?? Math.max(totalAmount - amountPaid, 0));
     const date = new Date(dto.date);
 
     let status: SaleStatus;
 
-    if (amountPaid === totalAmount) {
+    if (amountPaid >= totalAmount) {
       status = 'PAID';
     } else if (amountPaid === 0) {
       status = 'UNPAID';
@@ -28,6 +32,15 @@ export class CartonsService {
     return this.prisma.carton.create({
       data: {
         ...dto,
+        quantity: bigQuantity + smallQuantity,
+        price: bigPrice + smallPrice,
+        bigCartonsQuantity: bigQuantity,
+        smallCartonsQuantity: smallQuantity,
+        bigCartonPrice: bigPrice,
+        smallCartonPrice: smallPrice,
+        totalAmount,
+        amountPaid,
+        remainingAmount,
         date,
         status,
         user: { connect: { id: userId } },
@@ -47,11 +60,10 @@ export class CartonsService {
   }
 
   async findOne(id: string, userId: string) {
-
     const carton = await this.prisma.carton.findFirst({
       where: {
-        id: id,
-        userId: userId,
+        id,
+        userId,
       },
     });
 
@@ -62,7 +74,6 @@ export class CartonsService {
   }
 
   async update(id: string, userId: string, dto: UpdateCartonDto) {
-    
     const carton = await this.prisma.carton.findFirst({
       where: {
         id,
@@ -72,14 +83,20 @@ export class CartonsService {
     if (!carton) {
       throw new NotFoundException('Carton not found');
     }
-    const date = new Date(dto.date);
-    // Calculate new status if payment amounts are being updated
-    let status = carton.status;
-    if (dto.amountPaid !== undefined || dto.totalAmount !== undefined) {
-      const newAmountPaid = dto.amountPaid ?? carton.amountPaid;
-      const newTotalAmount = dto.totalAmount ?? carton.totalAmount;
 
-      if (newAmountPaid === newTotalAmount) {
+    const date = dto.date ? new Date(dto.date) : carton.date;
+    const bigQuantity = Number(dto.bigCartonsQuantity ?? carton.bigCartonsQuantity ?? 0);
+    const smallQuantity = Number(dto.smallCartonsQuantity ?? carton.smallCartonsQuantity ?? 0);
+    const bigPrice = Number(dto.bigCartonPrice ?? carton.bigCartonPrice ?? 0);
+    const smallPrice = Number(dto.smallCartonPrice ?? carton.smallCartonPrice ?? 0);
+    const computedTotal = bigQuantity * bigPrice + smallQuantity * smallPrice;
+    const newAmountPaid = Number(dto.amountPaid ?? carton.amountPaid ?? 0);
+    const newTotalAmount = Number(dto.totalAmount ?? computedTotal);
+    const newRemainingAmount = Number(dto.remainingAmount ?? Math.max(newTotalAmount - newAmountPaid, 0));
+
+    let status = carton.status;
+    if (dto.amountPaid !== undefined || dto.totalAmount !== undefined || dto.bigCartonsQuantity !== undefined || dto.smallCartonsQuantity !== undefined || dto.bigCartonPrice !== undefined || dto.smallCartonPrice !== undefined) {
+      if (newAmountPaid >= newTotalAmount) {
         status = 'PAID';
       } else if (newAmountPaid === 0) {
         status = 'UNPAID';
@@ -94,6 +111,15 @@ export class CartonsService {
       },
       data: {
         ...dto,
+        quantity: bigQuantity + smallQuantity,
+        price: bigPrice + smallPrice,
+        bigCartonsQuantity: bigQuantity,
+        smallCartonsQuantity: smallQuantity,
+        bigCartonPrice: bigPrice,
+        smallCartonPrice: smallPrice,
+        totalAmount: newTotalAmount,
+        amountPaid: newAmountPaid,
+        remainingAmount: newRemainingAmount,
         date,
         status,
       },
