@@ -12,9 +12,16 @@ async function bootstrap() {
     },
   ));
   
+  const devOrigins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+  ];
+
   const origin = process.env.NODE_ENV === "production" 
     ? process.env.BASE_URL ?? "https://eggtrack.vercel.app"
-    : "http://localhost:3000";
+    : (process.env.BASE_URL ? [process.env.BASE_URL, ...devOrigins] : devOrigins);
   
   app.enableCors({
     origin,
