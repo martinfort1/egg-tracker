@@ -47,6 +47,11 @@ export class FeedBagsService {
       where: {
         user: { id: user.id },
       },
+      include: {
+        payments: {
+          orderBy: { date: 'desc' },
+        },
+      },
       orderBy: {
         date: 'desc',
       },
@@ -58,6 +63,11 @@ export class FeedBagsService {
       where: {
         id: id,
         userId: userId,
+      },
+      include: {
+        payments: {
+          orderBy: { date: 'desc' },
+        },
       },
     });
 
@@ -126,7 +136,7 @@ export class FeedBagsService {
     });
   }
 
-  async addPayment(id: string, userId: string, dto: { amount: number }) {
+  async addPayment(id: string, userId: string, dto: { amount: number; date?: string; note?: string }) {
     const feedBag = await this.prisma.feedBag.findFirst({
       where: {
         id,
@@ -150,12 +160,71 @@ export class FeedBagsService {
     else if (newAmountPaid === 0) status = 'UNPAID';
     else status = 'PARTIAL';
 
-    return this.prisma.feedBag.update({
-      where: { id },
-      data: {
-        amountPaid: newAmountPaid,
-        remainingAmount,
-        status,
+    return this.prisma.$transaction(async (tx) => {
+      await tx.feedBag.update({
+        where: { id },
+        data: {
+          amountPaid: newAmountPaid,
+          remainingAmount,
+          status,
+        },
+      });
+
+      await tx.feedBagPayment.create({
+        data: {
+          feedBagId: id,
+          userId,
+          amount: dto.amount,
+          date: dto.date ? new Date(dto.date) : new Date(),
+          note: dto.note?.trim() || null,
+        },
+      });
+
+      return tx.feedBag.findFirst({
+        where: { id, userId },
+        include: {
+          payments: {
+            orderBy: { date: 'desc' },
+          },
+        },
+      });
+    });
+  }
+
+  async getPaymentHistory(id: string, userId: string) {
+    return this.prisma.feedBagPayment.findMany({
+      where: {
+        feedBagId: id,
+        userId,
+      },
+      orderBy: {
+        date: 'desc',
+      },
+    });
+  }
+
+  async getAllPaymentsHistory(userId: string) {
+    return this.prisma.feedBagPayment.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        feedBag: {
+          select: {
+            id: true,
+            purchaseNumber: true,
+            date: true,
+            amount: true,
+            phase: true,
+            price: true,
+            totalAmount: true,
+            remainingAmount: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: {
+        date: 'desc',
       },
     });
   }

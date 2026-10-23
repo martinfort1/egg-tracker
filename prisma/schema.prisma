@@ -25,6 +25,7 @@ model User {
   employees        Employee[]
   employeePayments EmployeePayment[]
   feedBags         FeedBag[]
+  feedBagPayments  FeedBagPayment[]
   cartons          Carton[]
   vaccines         Vaccine[]
   vaccineApplications VaccineApplication[]
@@ -161,6 +162,22 @@ model FeedBag {
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
+
+  payments FeedBagPayment[]
+}
+
+model FeedBagPayment {
+  id        String   @id @default(uuid())
+  amount    Float
+  date      DateTime @default(now())
+  note      String?
+  createdAt DateTime @default(now())
+
+  feedBagId String
+  feedBag   FeedBag  @relation(fields: [feedBagId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Carton {
