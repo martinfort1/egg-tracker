@@ -265,8 +265,16 @@ async remove(
   }
 
   return this.prisma.$transaction(async (tx) => {
+    const lastSale = await tx.sale.findFirst({
+      where: { userId: order.userId },
+      orderBy: { saleNumber: 'desc' },
+      select: { saleNumber: true },
+    });
+    const saleNumber = (lastSale?.saleNumber ?? 0) + 1;
+
     const sale = await tx.sale.create({
       data: {
+        saleNumber,
         date: new Date(),
 
         Extra: order.Extra,

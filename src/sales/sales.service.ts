@@ -40,8 +40,16 @@ export class SalesService {
       status = 'PARTIAL';
     }
 
+    const lastSale = await this.prisma.sale.findFirst({
+      where: { userId },
+      orderBy: { saleNumber: 'desc' },
+      select: { saleNumber: true },
+    });
+    const saleNumber = (lastSale?.saleNumber ?? 0) + 1;
+
     return this.prisma.sale.create({
       data: {
+        saleNumber,
         date: dto.date ? new Date(dto.date) : new Date(),
         Extra: dto.Extra,
         N1: dto.N1,

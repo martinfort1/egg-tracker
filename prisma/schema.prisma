@@ -50,8 +50,9 @@ model Buyer {
 }
 
 model Sale {
-  id   String   @id @default(uuid())
-  date DateTime @default(now())
+  id         String   @id @default(uuid())
+  saleNumber Int?
+  date       DateTime @default(now())
 
   Extra Float
   N1    Float
@@ -146,6 +147,7 @@ model Employee {
 
 model FeedBag {
   id             String     @id @default(uuid())
+  purchaseNumber Int?
   date           DateTime   @default(now())
   amount         Float      // Amount in kg or bags
   price          Float      // Price per unit

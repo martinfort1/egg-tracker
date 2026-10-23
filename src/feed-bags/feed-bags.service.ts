@@ -8,7 +8,7 @@ import { UpdateFeedBagDto } from './dto/update-feed-bag.dto';
 export class FeedBagsService {
   constructor(private prisma: PrismaService) {}
 
-  create(userId: string, dto: CreateFeedBagDto) {
+  async create(userId: string, dto: CreateFeedBagDto) {
     const amountPaid = dto.amountPaid ?? 0;
     const totalAmount = dto.totalAmount;
     const remainingAmount = dto.remainingAmount;
@@ -24,9 +24,17 @@ export class FeedBagsService {
       status = 'PARTIAL';
     }
 
+    const lastBag = await this.prisma.feedBag.findFirst({
+      where: { userId },
+      orderBy: { purchaseNumber: 'desc' },
+      select: { purchaseNumber: true },
+    });
+    const purchaseNumber = (lastBag?.purchaseNumber ?? 0) + 1;
+
     return this.prisma.feedBag.create({
       data: {
         ...dto,
+        purchaseNumber,
         date,
         status,
         user: { connect: { id: userId } },
