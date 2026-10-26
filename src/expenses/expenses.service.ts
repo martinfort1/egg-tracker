@@ -85,9 +85,30 @@ export class ExpensesService {
     });
   }
 
-  async findAllExpenses(userId: string) {
+  async findAllExpenses(
+    userId: string,
+    startDateStr?: string,
+    endDateStr?: string,
+  ) {
+    let gte: Date | undefined;
+    let lte: Date | undefined;
+
+    if (startDateStr) gte = new Date(startDateStr);
+    if (endDateStr) {
+      lte = new Date(endDateStr);
+      lte.setHours(23, 59, 59, 999);
+    }
+
     return this.prisma.expense.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...((gte || lte) && {
+          date: {
+            ...(gte && { gte }),
+            ...(lte && { lte }),
+          },
+        }),
+      },
       include: {
         category: true,
       },

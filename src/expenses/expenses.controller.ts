@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
@@ -63,8 +64,12 @@ export class ExpensesController {
 
   @UseGuards(JwtGuard)
   @Get()
-  findAllExpenses(@GetUser('id') userId: string) {
-    return this.expensesService.findAllExpenses(userId);
+  findAllExpenses(
+    @GetUser('id') userId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.expensesService.findAllExpenses(userId, startDate, endDate);
   }
 
   @UseGuards(JwtGuard)

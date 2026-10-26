@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CartonsService } from './cartons.service';
@@ -31,9 +32,13 @@ export class CartonsController {
 
   @Get()
   @UseGuards(JwtGuard)
-  findAll(@GetUser() user: User) 
+  findAll(
+    @GetUser() user: User,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) 
   {
-    return this.cartonsService.findAll(user);
+    return this.cartonsService.findAll(user, startDate, endDate);
   }
 
   @Get(':id')

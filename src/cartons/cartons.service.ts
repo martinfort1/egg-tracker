@@ -48,10 +48,25 @@ export class CartonsService {
     });
   }
 
-  async findAll(user: User) {
+  async findAll(user: User, startDateStr?: string, endDateStr?: string) {
+    let gte: Date | undefined;
+    let lte: Date | undefined;
+
+    if (startDateStr) gte = new Date(startDateStr);
+    if (endDateStr) {
+      lte = new Date(endDateStr);
+      lte.setHours(23, 59, 59, 999);
+    }
+
     return this.prisma.carton.findMany({
       where: {
         user: { id: user.id },
+        ...((gte || lte) && {
+          date: {
+            ...(gte && { gte }),
+            ...(lte && { lte }),
+          },
+        }),
       },
       orderBy: {
         date: 'desc',

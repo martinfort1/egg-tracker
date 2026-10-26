@@ -93,19 +93,34 @@ async create(dto: CreateOrderDto, userId: string) {
   });
 }
 
-  async findAll(userId: string) {
-  return this.prisma.order.findMany({
-    where: {
-      userId,
-    },
-    include: {
-      buyer: true,
-    },
-    orderBy: {
-      date: 'asc',
-    },
-  });
-}
+  async findAll(userId: string, startDateStr?: string, endDateStr?: string) {
+    let gte: Date | undefined;
+    let lte: Date | undefined;
+
+    if (startDateStr) gte = new Date(startDateStr);
+    if (endDateStr) {
+      lte = new Date(endDateStr);
+      lte.setHours(23, 59, 59, 999);
+    }
+
+    return this.prisma.order.findMany({
+      where: {
+        userId,
+        ...((gte || lte) && {
+          date: {
+            ...(gte && { gte }),
+            ...(lte && { lte }),
+          },
+        }),
+      },
+      include: {
+        buyer: true,
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+  }
   async findOne(
   id: string,
   userId: string,

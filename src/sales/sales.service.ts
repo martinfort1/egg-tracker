@@ -78,14 +78,33 @@ export class SalesService {
     });
   }
 
-  async findAll(userId: string, period?: string) {
-    const startDate = this.getStartDate(period);
+  async findAll(
+    userId: string,
+    period?: string,
+    startDateStr?: string,
+    endDateStr?: string,
+  ) {
+    let gte: Date | undefined;
+    let lte: Date | undefined;
+
+    if (startDateStr) {
+      gte = new Date(startDateStr);
+    } else if (period) {
+      gte = this.getStartDate(period);
+    }
+
+    if (endDateStr) {
+      lte = new Date(endDateStr);
+      lte.setHours(23, 59, 59, 999);
+    }
+
     return this.prisma.sale.findMany({
       where: {
         userId,
-        ...(startDate && {
+        ...((gte || lte) && {
           date: {
-            gte: startDate,
+            ...(gte && { gte }),
+            ...(lte && { lte }),
           },
         }),
       },

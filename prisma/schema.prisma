@@ -167,11 +167,12 @@ model FeedBag {
 }
 
 model FeedBagPayment {
-  id        String   @id @default(uuid())
-  amount    Float
-  date      DateTime @default(now())
-  note      String?
-  createdAt DateTime @default(now())
+  id            String   @id @default(uuid())
+  paymentNumber Int?
+  amount        Float
+  date          DateTime @default(now())
+  note          String?
+  createdAt     DateTime @default(now())
 
   feedBagId String
   feedBag   FeedBag  @relation(fields: [feedBagId], references: [id], onDelete: Cascade)

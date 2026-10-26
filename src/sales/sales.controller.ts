@@ -31,8 +31,10 @@ export class SalesController {
   findAll(
     @GetUser('id') userId: string,
     @Query('period') period?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
-    return this.salesService.findAll(userId, period);
+    return this.salesService.findAll(userId, period, startDate, endDate);
   }
 
   @Get('/debts')

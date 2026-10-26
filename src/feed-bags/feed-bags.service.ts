@@ -42,10 +42,25 @@ export class FeedBagsService {
     });
   }
 
-  async findAll(user: User) {
+  async findAll(user: User, startDateStr?: string, endDateStr?: string) {
+    let gte: Date | undefined;
+    let lte: Date | undefined;
+
+    if (startDateStr) gte = new Date(startDateStr);
+    if (endDateStr) {
+      lte = new Date(endDateStr);
+      lte.setHours(23, 59, 59, 999);
+    }
+
     return this.prisma.feedBag.findMany({
       where: {
         user: { id: user.id },
+        ...((gte || lte) && {
+          date: {
+            ...(gte && { gte }),
+            ...(lte && { lte }),
+          },
+        }),
       },
       include: {
         payments: {
@@ -170,10 +185,18 @@ export class FeedBagsService {
         },
       });
 
+      const lastPayment = await tx.feedBagPayment.findFirst({
+        where: { userId },
+        orderBy: { paymentNumber: 'desc' },
+        select: { paymentNumber: true },
+      });
+      const paymentNumber = (lastPayment?.paymentNumber ?? 0) + 1;
+
       await tx.feedBagPayment.create({
         data: {
           feedBagId: id,
           userId,
+          paymentNumber,
           amount: dto.amount,
           date: dto.date ? new Date(dto.date) : new Date(),
           note: dto.note?.trim() || null,
@@ -203,10 +226,29 @@ export class FeedBagsService {
     });
   }
 
-  async getAllPaymentsHistory(userId: string) {
+  async getAllPaymentsHistory(
+    userId: string,
+    startDateStr?: string,
+    endDateStr?: string,
+  ) {
+    let gte: Date | undefined;
+    let lte: Date | undefined;
+
+    if (startDateStr) gte = new Date(startDateStr);
+    if (endDateStr) {
+      lte = new Date(endDateStr);
+      lte.setHours(23, 59, 59, 999);
+    }
+
     return this.prisma.feedBagPayment.findMany({
       where: {
         userId,
+        ...((gte || lte) && {
+          date: {
+            ...(gte && { gte }),
+            ...(lte && { lte }),
+          },
+        }),
       },
       include: {
         feedBag: {
@@ -261,41 +303,58 @@ export class FeedBagsService {
     }
 
     let remainingPayment = dto.amount;
-    const updates: any[] = [];
 
-    // Distribute payment across feed bags
-    for (const feedBag of feedBags) {
-      if (remainingPayment <= 0) break;
+    return this.prisma.$transaction(async (tx) => {
+      const lastPayment = await tx.feedBagPayment.findFirst({
+        where: { userId },
+        orderBy: { paymentNumber: 'desc' },
+        select: { paymentNumber: true },
+      });
+      let currentPaymentNumber = lastPayment?.paymentNumber ?? 0;
+      let feedBagsUpdated = 0;
 
-      const amountToApply = Math.min(remainingPayment, feedBag.remainingAmount);
-      const newAmountPaid = feedBag.amountPaid + amountToApply;
-      const newRemainingAmount = feedBag.totalAmount - newAmountPaid;
+      // Distribute payment across feed bags
+      for (const feedBag of feedBags) {
+        if (remainingPayment <= 0) break;
 
-      let status: SaleStatus;
-      if (newAmountPaid >= feedBag.totalAmount) status = 'PAID';
-      else if (newAmountPaid === 0) status = 'UNPAID';
-      else status = 'PARTIAL';
+        const amountToApply = Math.min(remainingPayment, feedBag.remainingAmount);
+        const newAmountPaid = feedBag.amountPaid + amountToApply;
+        const newRemainingAmount = feedBag.totalAmount - newAmountPaid;
 
-      updates.push(
-        this.prisma.feedBag.update({
+        let status: SaleStatus;
+        if (newAmountPaid >= feedBag.totalAmount) status = 'PAID';
+        else if (newAmountPaid === 0) status = 'UNPAID';
+        else status = 'PARTIAL';
+
+        await tx.feedBag.update({
           where: { id: feedBag.id },
           data: {
             amountPaid: newAmountPaid,
             remainingAmount: newRemainingAmount,
             status,
           },
-        })
-      );
+        });
 
-      remainingPayment -= amountToApply;
-    }
+        currentPaymentNumber += 1;
+        await tx.feedBagPayment.create({
+          data: {
+            feedBagId: feedBag.id,
+            userId,
+            paymentNumber: currentPaymentNumber,
+            amount: amountToApply,
+            date: dto.date ? new Date(dto.date) : new Date(),
+            note: 'Pago general a proveedor',
+          },
+        });
 
-    // Execute all updates
-    await this.prisma.$transaction(updates);
+        remainingPayment -= amountToApply;
+        feedBagsUpdated += 1;
+      }
 
-    return {
-      amountApplied: dto.amount - remainingPayment,
-      feedBagsUpdated: updates.length,
-    };
+      return {
+        amountApplied: dto.amount - remainingPayment,
+        feedBagsUpdated,
+      };
+    });
   }
 }

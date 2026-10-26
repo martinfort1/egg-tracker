@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { FeedBagsService } from './feed-bags.service';
@@ -30,8 +31,12 @@ export class FeedBagsController {
 
   @Get()
   @UseGuards(JwtGuard)
-  findAll(@GetUser() user: User) {
-    return this.feedBagsService.findAll(user);
+  findAll(
+    @GetUser() user: User,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.feedBagsService.findAll(user, startDate, endDate);
   }
 
   @Get('metrics/summary')
@@ -42,8 +47,12 @@ export class FeedBagsController {
 
   @Get('payments/all')
   @UseGuards(JwtGuard)
-  getAllPayments(@GetUser() user: { id: string }) {
-    return this.feedBagsService.getAllPaymentsHistory(user.id);
+  getAllPayments(
+    @GetUser() user: { id: string },
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.feedBagsService.getAllPaymentsHistory(user.id, startDate, endDate);
   }
 
   @Get(':id')
