@@ -34,20 +34,25 @@ model User {
   eggLayings       EggLaying[]
   chickens         Chicken[]
   chickenDeaths    ChickenDeath[]
+  eggPurchases     EggPurchase[]
+  eggPurchasePayments EggPurchasePayment[]
 }
 
 model Buyer {
-  id      String  @id @default(uuid())
-  name    String
-  phone   String?
-  address String?
-  notes   String?
+  id            String   @id @default(uuid())
+  name          String
+  phone         String?
+  address       String?
+  notes         String?
+  isBuyer       Boolean  @default(true)
+  isEggSupplier Boolean  @default(false)
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  sales Sale[]
-  orders Order[]
+  sales        Sale[]
+  orders       Order[]
+  eggPurchases EggPurchase[]
 }
 
 model Sale {
@@ -345,4 +350,67 @@ model ChickenDeath {
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
+}
+
+model EggPurchase {
+  id              String     @id @default(uuid())
+  purchaseNumber  Int?
+  date            DateTime   @default(now())
+
+  // Quantities of cajones
+  Extra           Float      @default(0)
+  N1              Float      @default(0)
+  N2              Float      @default(0)
+  N3              Float      @default(0)
+  N4              Float      @default(0)
+
+  // Buy prices per cajón
+  ExtraBuyPrice   Float      @default(0)
+  N1BuyPrice      Float      @default(0)
+  N2BuyPrice      Float      @default(0)
+  N3BuyPrice      Float      @default(0)
+  N4BuyPrice      Float      @default(0)
+
+  // Expected sell prices per cajón
+  ExtraSellPrice  Float      @default(0)
+  N1SellPrice     Float      @default(0)
+  N2SellPrice     Float      @default(0)
+  N3SellPrice     Float      @default(0)
+  N4SellPrice     Float      @default(0)
+
+  // Financial totals
+  totalCost       Float      @default(0) // Sum of (qty * buyPrice)
+  expectedRevenue Float      @default(0) // Sum of (qty * sellPrice)
+  estimatedProfit Float      @default(0) // expectedRevenue - totalCost
+
+  amountPaid      Float      @default(0)
+  remainingAmount Float      @default(0)
+  status          SaleStatus @default(UNPAID)
+  notes           String?
+
+  supplierId      String
+  supplier        Buyer      @relation(fields: [supplierId], references: [id])
+
+  userId          String
+  user            User       @relation(fields: [userId], references: [id])
+
+  payments        EggPurchasePayment[]
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model EggPurchasePayment {
+  id            String      @id @default(uuid())
+  paymentNumber Int?
+  amount        Float
+  date          DateTime    @default(now())
+  note          String?
+  createdAt     DateTime    @default(now())
+
+  eggPurchaseId String
+  eggPurchase   EggPurchase @relation(fields: [eggPurchaseId], references: [id], onDelete: Cascade)
+
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
 }

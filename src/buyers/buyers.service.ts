@@ -9,19 +9,25 @@ export class BuyersService {
   constructor(private prisma: PrismaService) {}
 
   create(userId: string, dto: CreateBuyerDto) {
-
     return this.prisma.buyer.create({
       data: {
         ...dto,
+        isBuyer: dto.isBuyer !== undefined ? dto.isBuyer : true,
+        isEggSupplier: dto.isEggSupplier !== undefined ? dto.isEggSupplier : false,
         user: { connect: { id: userId } },
       },
     });
   }
 
-  async findAll(user: User) {
+  async findAll(user: User, type?: string) {
     return this.prisma.buyer.findMany({
       where: {
-        user: { id: user.id },
+        userId: user.id,
+        ...(type === 'buyer' ? { isBuyer: true } : {}),
+        ...(type === 'supplier' ? { isEggSupplier: true } : {}),
+      },
+      orderBy: {
+        name: 'asc',
       },
     });
   }

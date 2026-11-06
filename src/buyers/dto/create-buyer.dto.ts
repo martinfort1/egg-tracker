@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateBuyerDto {
   @IsString()
@@ -16,4 +16,12 @@ export class CreateBuyerDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isBuyer?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isEggSupplier?: boolean;
 }

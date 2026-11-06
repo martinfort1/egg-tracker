@@ -7,6 +7,7 @@ import {
   Post,
   Put,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { BuyersService } from './buyers.service';
 import { JwtGuard } from '../auth/guards/jwt.guard';
@@ -26,8 +27,8 @@ export class BuyersController {
 
   @Get()
   @UseGuards(JwtGuard)
-  findAll(@GetUser() user: User) {
-    return this.buyersService.findAll(user);
+  findAll(@GetUser() user: User, @Query('type') type?: string) {
+    return this.buyersService.findAll(user, type);
   }
 
   @Get('/debts')
