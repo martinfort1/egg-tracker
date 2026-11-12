@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateExpenseCategoryDto } from './dto/create-expense-category.dto';
 import { CreateExpenseDto } from './dto/create-expense.dto';
+import { UpdateExpenseDto } from './dto/update-expense.dto';
 
 @Injectable()
 export class ExpensesService {
@@ -152,6 +153,45 @@ export class ExpensesService {
 
     return this.prisma.expense.delete({
       where: { id },
+    });
+  }
+
+  async updateExpense(id: string, userId: string, dto: UpdateExpenseDto) {
+    const expense = await this.prisma.expense.findFirst({
+      where: { id, userId },
+    });
+
+    if (!expense) {
+      throw new NotFoundException('Expense not found');
+    }
+
+    if (dto.categoryId) {
+      const category = await this.prisma.expenseCategory.findFirst({
+        where: { id: dto.categoryId, userId },
+      });
+      if (!category) {
+        throw new NotFoundException('Expense category not found');
+      }
+    }
+
+    const quantity = dto.quantity !== undefined ? dto.quantity : expense.quantity;
+    const price = dto.price !== undefined ? dto.price : expense.price;
+    const totalAmount = quantity * price;
+
+    return this.prisma.expense.update({
+      where: { id },
+      data: {
+        ...(dto.date && { date: new Date(dto.date) }),
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.quantity !== undefined && { quantity: dto.quantity }),
+        ...(dto.price !== undefined && { price: dto.price }),
+        totalAmount,
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.categoryId && { category: { connect: { id: dto.categoryId } } }),
+      },
+      include: {
+        category: true,
+      },
     });
   }
 }

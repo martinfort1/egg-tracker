@@ -4,7 +4,9 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -13,6 +15,7 @@ import { JwtGuard } from '../auth/guards/jwt.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { CreateExpenseCategoryDto } from './dto/create-expense-category.dto';
 import { CreateExpenseDto } from './dto/create-expense.dto';
+import { UpdateExpenseDto } from './dto/update-expense.dto';
 
 @Controller('expenses')
 export class ExpensesController {
@@ -88,6 +91,26 @@ export class ExpensesController {
     @GetUser('id') userId: string,
   ) {
     return this.expensesService.findOneExpense(id, userId);
+  }
+
+  @UseGuards(JwtGuard)
+  @Patch(':id')
+  updateExpense(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+    @Body() dto: UpdateExpenseDto,
+  ) {
+    return this.expensesService.updateExpense(id, userId, dto);
+  }
+
+  @UseGuards(JwtGuard)
+  @Put(':id')
+  updateExpensePut(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+    @Body() dto: UpdateExpenseDto,
+  ) {
+    return this.expensesService.updateExpense(id, userId, dto);
   }
 
   @UseGuards(JwtGuard)
