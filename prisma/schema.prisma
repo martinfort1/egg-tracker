@@ -34,6 +34,7 @@ model User {
   eggLayings       EggLaying[]
   chickens         Chicken[]
   chickenDeaths    ChickenDeath[]
+  chickenPayments  ChickenPayment[]
   eggPurchases     EggPurchase[]
   eggPurchasePayments EggPurchasePayment[]
 }
@@ -322,19 +323,40 @@ model EggLaying {
 }
 
 model Chicken {
-  id                String   @id @default(uuid())
-  date              DateTime @default(now())
-  amount            Int      // Number of chickens bought
-  pricePerChicken   Float    // Price per chicken
-  shippingCost      Float    // Shipping cost
-  totalCost         Float    // Total cost
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                String     @id @default(uuid())
+  purchaseNumber    Int?
+  date              DateTime   @default(now())
+  supplier          String?    // Nombre del proveedor
+  amount            Int        // Number of chickens bought
+  pricePerChicken   Float      // Price per chicken
+  shippingCost      Float      @default(0) // Shipping cost
+  totalCost         Float      // Total cost
+  amountPaid        Float      @default(0)
+  remainingAmount   Float      @default(0)
+  status            SaleStatus @default(UNPAID)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  deaths ChickenDeath[]
+  deaths   ChickenDeath[]
+  payments ChickenPayment[]
+}
+
+model ChickenPayment {
+  id            String   @id @default(uuid())
+  paymentNumber Int?
+  amount        Float
+  date          DateTime @default(now())
+  note          String?
+  createdAt     DateTime @default(now())
+
+  chickenId String
+  chicken   Chicken  @relation(fields: [chickenId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model ChickenDeath {

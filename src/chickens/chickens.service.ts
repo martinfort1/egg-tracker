@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateChickenDto } from './dto/create-chicken.dto';
 import { CreateChickenDeathDto } from './dto/create-chicken-death.dto';
 import { UpdateChickenDto } from './dto/update-chicken.dto';
-import { User } from '@prisma/client';
+import { User, SaleStatus } from '@prisma/client';
 
 @Injectable()
 export class ChickensService {
@@ -11,20 +11,55 @@ export class ChickensService {
 
   async create(userId: string, dto: CreateChickenDto) {
     const date = new Date(dto.date);
+    const amount = Number(dto.amount) || 0;
+    const pricePerChicken = Number(dto.pricePerChicken) || 0;
+    const shippingCost = Number(dto.shippingCost) || 0;
+    const totalCost = (amount * pricePerChicken) + shippingCost;
+    const amountPaid = Number(dto.amountPaid) || 0;
+    const remainingAmount = Math.max(0, totalCost - amountPaid);
+    const status =
+      remainingAmount === 0
+        ? SaleStatus.PAID
+        : amountPaid > 0
+        ? SaleStatus.PARTIAL
+        : SaleStatus.UNPAID;
 
-    return this.prisma.chicken.create({
+    const purchaseNumber = (await this.prisma.chicken.count({ where: { userId } })) + 1;
+
+    const chicken = await this.prisma.chicken.create({
       data: {
+        purchaseNumber,
         date,
-        amount: dto.amount,
-        pricePerChicken: dto.pricePerChicken,
-        shippingCost: dto.shippingCost,
-        totalCost: dto.totalCost,
+        supplier: dto.supplier?.trim() || null,
+        amount,
+        pricePerChicken,
+        shippingCost,
+        totalCost,
+        amountPaid,
+        remainingAmount,
+        status,
         user: { connect: { id: userId } },
       },
       include: {
         deaths: true,
+        payments: true,
       },
     });
+
+    if (amountPaid > 0) {
+      await this.prisma.chickenPayment.create({
+        data: {
+          paymentNumber: 1,
+          amount: amountPaid,
+          date,
+          note: 'Pago inicial al registrar compra',
+          chicken: { connect: { id: chicken.id } },
+          user: { connect: { id: userId } },
+        },
+      });
+    }
+
+    return chicken;
   }
 
   async findAll(user: User) {
@@ -34,6 +69,11 @@ export class ChickensService {
       },
       include: {
         deaths: {
+          orderBy: {
+            date: 'desc',
+          },
+        },
+        payments: {
           orderBy: {
             date: 'desc',
           },
@@ -53,6 +93,11 @@ export class ChickensService {
       },
       include: {
         deaths: {
+          orderBy: {
+            date: 'desc',
+          },
+        },
+        payments: {
           orderBy: {
             date: 'desc',
           },
@@ -79,19 +124,96 @@ export class ChickensService {
     }
 
     const date = dto.date ? new Date(dto.date) : undefined;
+    const amount = dto.amount !== undefined ? Number(dto.amount) : chicken.amount;
+    const pricePerChicken = dto.pricePerChicken !== undefined ? Number(dto.pricePerChicken) : chicken.pricePerChicken;
+    const shippingCost = dto.shippingCost !== undefined ? Number(dto.shippingCost) : chicken.shippingCost;
+    const totalCost = (amount * pricePerChicken) + shippingCost;
+    const amountPaid = dto.amountPaid !== undefined ? Number(dto.amountPaid) : chicken.amountPaid;
+    const remainingAmount = Math.max(0, totalCost - amountPaid);
+    const status =
+      remainingAmount === 0
+        ? SaleStatus.PAID
+        : amountPaid > 0
+        ? SaleStatus.PARTIAL
+        : SaleStatus.UNPAID;
 
     return this.prisma.chicken.update({
       where: { id },
       data: {
         ...(date && { date }),
-        ...(dto.amount && { amount: dto.amount }),
-        ...(dto.pricePerChicken && { pricePerChicken: dto.pricePerChicken }),
-        ...(dto.shippingCost !== undefined && { shippingCost: dto.shippingCost }),
-        ...(dto.totalCost && { totalCost: dto.totalCost }),
+        ...(dto.supplier !== undefined && { supplier: dto.supplier?.trim() || null }),
+        amount,
+        pricePerChicken,
+        shippingCost,
+        totalCost,
+        amountPaid,
+        remainingAmount,
+        status,
       },
       include: {
         deaths: true,
+        payments: true,
       },
+    });
+  }
+
+  async addPayment(
+    id: string,
+    userId: string,
+    dto: { amount: number; date?: string; note?: string },
+  ) {
+    const chicken = await this.prisma.chicken.findFirst({
+      where: { id, userId },
+      include: { payments: true },
+    });
+
+    if (!chicken) {
+      throw new NotFoundException('Chicken record not found');
+    }
+
+    const paymentAmount = Number(dto.amount);
+    const newAmountPaid = chicken.amountPaid + paymentAmount;
+    const newRemainingAmount = Math.max(0, chicken.totalCost - newAmountPaid);
+    const newStatus =
+      newRemainingAmount <= 0
+        ? SaleStatus.PAID
+        : newAmountPaid > 0
+        ? SaleStatus.PARTIAL
+        : SaleStatus.UNPAID;
+
+    const paymentNumber = (chicken.payments?.length || 0) + 1;
+
+    await this.prisma.chickenPayment.create({
+      data: {
+        paymentNumber,
+        amount: paymentAmount,
+        date: dto.date ? new Date(dto.date) : new Date(),
+        note: dto.note,
+        chicken: { connect: { id } },
+        user: { connect: { id: userId } },
+      },
+    });
+
+    return this.prisma.chicken.update({
+      where: { id },
+      data: {
+        amountPaid: newAmountPaid,
+        remainingAmount: newRemainingAmount,
+        status: newStatus,
+      },
+      include: {
+        deaths: true,
+        payments: {
+          orderBy: { date: 'desc' },
+        },
+      },
+    });
+  }
+
+  async getPaymentHistory(id: string, userId: string) {
+    return this.prisma.chickenPayment.findMany({
+      where: { chickenId: id, userId },
+      orderBy: { date: 'desc' },
     });
   }
 

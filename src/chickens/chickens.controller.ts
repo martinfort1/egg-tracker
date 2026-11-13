@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   UseGuards,
@@ -86,6 +87,22 @@ export class ChickensController {
     @Body() dto: UpdateChickenDto,
   ) {
     return this.chickensService.update(id, user.id, dto);
+  }
+
+  @Patch(':id/payment')
+  @UseGuards(JwtGuard)
+  addPayment(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+    @Body() dto: { amount: number; date?: string; note?: string },
+  ) {
+    return this.chickensService.addPayment(id, userId, dto);
+  }
+
+  @Get(':id/payments')
+  @UseGuards(JwtGuard)
+  getPayments(@Param('id') id: string, @GetUser('id') userId: string) {
+    return this.chickensService.getPaymentHistory(id, userId);
   }
 
   @Delete(':id')
