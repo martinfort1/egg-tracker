@@ -19,14 +19,20 @@ async function bootstrap() {
     "http://127.0.0.1:3001",
   ];
 
-  const origin = process.env.NODE_ENV === "production" 
-    ? process.env.BASE_URL ?? "https://eggtrack.vercel.app"
-    : (process.env.BASE_URL ? [process.env.BASE_URL, ...devOrigins] : devOrigins);
-  
+  const allowedOrigins: (string | RegExp)[] = [
+    "https://eggtrack.vercel.app",
+    /\.vercel\.app$/,
+    ...devOrigins,
+  ];
+
+  if (process.env.BASE_URL) {
+    allowedOrigins.push(process.env.BASE_URL);
+  }
+
   app.enableCors({
-    origin,
-    credentials: true
-  })
+    origin: allowedOrigins,
+    credentials: true,
+  });
   
   const port = process.env.PORT ?? 3001;
   await app.listen(port, '0.0.0.0');
