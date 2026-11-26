@@ -1,4 +1,4 @@
-import { IsNumber, IsNotEmpty, IsString } from 'class-validator';
+import { IsNumber, IsNotEmpty, IsString, IsOptional } from 'class-validator';
 
 export class CreateEggLayingDto {
   @IsString()
@@ -12,4 +12,8 @@ export class CreateEggLayingDto {
   @IsNumber()
   @IsNotEmpty()
   cartons!: number;
+
+  @IsOptional()
+  @IsString()
+  chickenId?: string;
 }

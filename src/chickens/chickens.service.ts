@@ -234,6 +234,97 @@ export class ChickensService {
     });
   }
 
+  async setAliveCount(
+    id: string,
+    userId: string,
+    aliveCount: number,
+    notes?: string,
+  ) {
+    const chicken = await this.prisma.chicken.findFirst({
+      where: { id, userId },
+      include: { deaths: true },
+    });
+
+    if (!chicken) {
+      throw new NotFoundException('Chicken record not found');
+    }
+
+    const currentDeaths = (chicken.deaths || []).reduce(
+      (sum, d) => sum + (Number(d.amount) || 0),
+      0,
+    );
+
+    const targetAlive = Math.max(0, Number(aliveCount) || 0);
+
+    // If target alive is greater than the initial bought amount, update bought amount as well
+    if (targetAlive > chicken.amount) {
+      await this.prisma.chickenDeath.deleteMany({
+        where: { chickenId: id, userId },
+      });
+
+      const pricePerChicken = chicken.pricePerChicken;
+      const totalCost = (targetAlive * pricePerChicken) + chicken.shippingCost;
+      const remainingAmount = Math.max(0, totalCost - chicken.amountPaid);
+      const status =
+        remainingAmount === 0
+          ? SaleStatus.PAID
+          : chicken.amountPaid > 0
+          ? SaleStatus.PARTIAL
+          : SaleStatus.UNPAID;
+
+      return this.prisma.chicken.update({
+        where: { id },
+        data: {
+          amount: targetAlive,
+          totalCost,
+          remainingAmount,
+          status,
+        },
+        include: { deaths: true, payments: true },
+      });
+    }
+
+    // Target alive is <= chicken.amount
+    const neededDeaths = chicken.amount - targetAlive;
+    const diff = neededDeaths - currentDeaths;
+
+    if (diff > 0) {
+      await this.prisma.chickenDeath.create({
+        data: {
+          date: new Date(),
+          amount: diff,
+          notes: notes?.trim() || 'Ajuste de censo de gallinas vivas',
+          chicken: { connect: { id } },
+          user: { connect: { id: userId } },
+        },
+      });
+    } else if (diff < 0) {
+      let deathsToRemove = Math.abs(diff);
+      const sortedDeaths = [...chicken.deaths].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      );
+
+      for (const d of sortedDeaths) {
+        if (deathsToRemove <= 0) break;
+        if (d.amount <= deathsToRemove) {
+          deathsToRemove -= d.amount;
+          await this.prisma.chickenDeath.delete({ where: { id: d.id } });
+        } else {
+          await this.prisma.chickenDeath.update({
+            where: { id: d.id },
+            data: { amount: d.amount - deathsToRemove },
+          });
+          deathsToRemove = 0;
+        }
+      }
+    }
+
+    return this.prisma.chicken.findUnique({
+      where: { id },
+      include: { deaths: true, payments: true },
+    });
+  }
+
   async getCurrentChickenCount(userId: string): Promise<number> {
     const chickens = await this.prisma.chicken.findMany({
       where: { userId },

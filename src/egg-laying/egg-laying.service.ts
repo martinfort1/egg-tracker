@@ -7,14 +7,15 @@ export class EggLayingService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, dto: CreateEggLayingDto) {
+    const date = dto.date;
+    const chickenId = dto.chickenId || null;
 
-    const date = dto.date
-
-    // Check if entry already exists for this date
+    // Check if entry already exists for this date and chickenId
     const existingEntry = await this.prisma.eggLaying.findFirst({
       where: {
-          userId,
-          date,
+        userId,
+        date,
+        ...(chickenId ? { chickenId } : {}),
       },
     });
 
@@ -25,6 +26,23 @@ export class EggLayingService {
         data: {
           boxes: dto.boxes,
           cartons: dto.cartons,
+          ...(chickenId !== undefined
+            ? {
+                chicken: chickenId
+                  ? { connect: { id: chickenId } }
+                  : { disconnect: true },
+              }
+            : {}),
+        },
+        include: {
+          chicken: {
+            select: {
+              id: true,
+              purchaseNumber: true,
+              supplier: true,
+              amount: true,
+            },
+          },
         },
       });
     }
@@ -35,6 +53,17 @@ export class EggLayingService {
         boxes: dto.boxes,
         cartons: dto.cartons,
         user: { connect: { id: userId } },
+        ...(chickenId ? { chicken: { connect: { id: chickenId } } } : {}),
+      },
+      include: {
+        chicken: {
+          select: {
+            id: true,
+            purchaseNumber: true,
+            supplier: true,
+            amount: true,
+          },
+        },
       },
     });
   }
@@ -42,19 +71,38 @@ export class EggLayingService {
   async findAll(userId: string) {
     return this.prisma.eggLaying.findMany({
       where: { userId },
+      include: {
+        chicken: {
+          select: {
+            id: true,
+            purchaseNumber: true,
+            supplier: true,
+            amount: true,
+          },
+        },
+      },
       orderBy: { date: 'desc' },
     });
   }
 
   async findByMonth(userId: string, year: number, month: number) {
-
     const monthStr = month.toString().padStart(2, '0'); // Ensure month is 2 digits
 
     return this.prisma.eggLaying.findMany({
       where: {
         userId,
         date: {
-          startsWith: `${year}-${monthStr}`
+          startsWith: `${year}-${monthStr}`,
+        },
+      },
+      include: {
+        chicken: {
+          select: {
+            id: true,
+            purchaseNumber: true,
+            supplier: true,
+            amount: true,
+          },
         },
       },
       orderBy: { date: 'desc' },
@@ -64,6 +112,16 @@ export class EggLayingService {
   async findOne(id: string, userId: string) {
     const eggLaying = await this.prisma.eggLaying.findFirst({
       where: { id, userId },
+      include: {
+        chicken: {
+          select: {
+            id: true,
+            purchaseNumber: true,
+            supplier: true,
+            amount: true,
+          },
+        },
+      },
     });
 
     if (!eggLaying) {

@@ -105,6 +105,26 @@ export class ChickensController {
     return this.chickensService.getPaymentHistory(id, userId);
   }
 
+  @Patch(':id/alive')
+  @UseGuards(JwtGuard)
+  setAliveCount(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+    @Body() dto: { aliveCount: number; notes?: string },
+  ) {
+    return this.chickensService.setAliveCount(id, userId, dto.aliveCount, dto.notes);
+  }
+
+  @Put(':id/alive')
+  @UseGuards(JwtGuard)
+  updateAliveCount(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+    @Body() dto: { aliveCount: number; notes?: string },
+  ) {
+    return this.chickensService.setAliveCount(id, userId, dto.aliveCount, dto.notes);
+  }
+
   @Delete(':id')
   @UseGuards(JwtGuard)
   deleteChicken(
