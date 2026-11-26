@@ -336,6 +336,8 @@ model Chicken {
   amountPaid        Float      @default(0)
   remainingAmount   Float      @default(0)
   status            SaleStatus @default(UNPAID)
+  hasArrived        Boolean    @default(true) // Si ya llegó físicamente a la granja
+  arrivalDate       DateTime?  // Fecha estimada o real de llegada a la granja
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 

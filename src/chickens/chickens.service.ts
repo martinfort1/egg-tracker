@@ -38,6 +38,8 @@ export class ChickensService {
         amountPaid,
         remainingAmount,
         status,
+        hasArrived: dto.hasArrived !== undefined ? Boolean(dto.hasArrived) : true,
+        arrivalDate: dto.arrivalDate ? new Date(dto.arrivalDate) : null,
         user: { connect: { id: userId } },
       },
       include: {
@@ -142,6 +144,10 @@ export class ChickensService {
       data: {
         ...(date && { date }),
         ...(dto.supplier !== undefined && { supplier: dto.supplier?.trim() || null }),
+        ...(dto.hasArrived !== undefined && { hasArrived: Boolean(dto.hasArrived) }),
+        ...(dto.arrivalDate !== undefined && {
+          arrivalDate: dto.arrivalDate ? new Date(dto.arrivalDate) : null,
+        }),
         amount,
         pricePerChicken,
         shippingCost,
@@ -325,9 +331,38 @@ export class ChickensService {
     });
   }
 
+  async setArrivalStatus(
+    id: string,
+    userId: string,
+    hasArrived: boolean,
+    arrivalDate?: string | Date,
+  ) {
+    const chicken = await this.prisma.chicken.findFirst({
+      where: { id, userId },
+    });
+
+    if (!chicken) {
+      throw new NotFoundException('Chicken record not found');
+    }
+
+    return this.prisma.chicken.update({
+      where: { id },
+      data: {
+        hasArrived: Boolean(hasArrived),
+        ...(arrivalDate !== undefined && {
+          arrivalDate: arrivalDate ? new Date(arrivalDate) : null,
+        }),
+      },
+      include: {
+        deaths: true,
+        payments: true,
+      },
+    });
+  }
+
   async getCurrentChickenCount(userId: string): Promise<number> {
     const chickens = await this.prisma.chicken.findMany({
-      where: { userId },
+      where: { userId, hasArrived: true },
       include: {
         deaths: true,
       },
@@ -341,9 +376,12 @@ export class ChickensService {
       totalChickens += chicken.amount;
     }
 
-    // Subtract all deaths
+    // Subtract all deaths belonging to arrived chicken lots
     const allDeaths = await this.prisma.chickenDeath.findMany({
-      where: { userId },
+      where: {
+        userId,
+        chicken: { hasArrived: true },
+      },
     });
 
     let totalDeaths = 0;
@@ -351,12 +389,12 @@ export class ChickensService {
       totalDeaths += death.amount;
     }
 
-    return totalChickens - totalDeaths;
+    return Math.max(0, totalChickens - totalDeaths);
   }
 
   async getChickenHistory(userId: string) {
     const chickens = await this.prisma.chicken.findMany({
-      where: { userId },
+      where: { userId, hasArrived: true },
       include: {
         deaths: true,
       },
@@ -366,7 +404,10 @@ export class ChickensService {
     });
 
     const deaths = await this.prisma.chickenDeath.findMany({
-      where: { userId },
+      where: {
+        userId,
+        chicken: { hasArrived: true },
+      },
       orderBy: {
         date: 'asc',
       },

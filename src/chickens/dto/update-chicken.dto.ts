@@ -1,4 +1,4 @@
-import { IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateChickenDto {
@@ -35,4 +35,13 @@ export class UpdateChickenDto {
   @Type(() => Number)
   @IsNumber()
   amountPaid?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  hasArrived?: boolean;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  arrivalDate?: Date;
 }

@@ -125,6 +125,26 @@ export class ChickensController {
     return this.chickensService.setAliveCount(id, userId, dto.aliveCount, dto.notes);
   }
 
+  @Patch(':id/arrival')
+  @UseGuards(JwtGuard)
+  setArrival(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+    @Body() dto: { hasArrived: boolean; arrivalDate?: string },
+  ) {
+    return this.chickensService.setArrivalStatus(id, userId, dto.hasArrived, dto.arrivalDate);
+  }
+
+  @Put(':id/arrival')
+  @UseGuards(JwtGuard)
+  updateArrival(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+    @Body() dto: { hasArrived: boolean; arrivalDate?: string },
+  ) {
+    return this.chickensService.setArrivalStatus(id, userId, dto.hasArrived, dto.arrivalDate);
+  }
+
   @Delete(':id')
   @UseGuards(JwtGuard)
   deleteChicken(
